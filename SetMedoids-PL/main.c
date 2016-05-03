@@ -4,7 +4,6 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
-#include <limits.h>
 
 #include "util.h"
 
@@ -27,33 +26,6 @@ double theta;
 double *parc_obj_adeq;
 double *parc_cluster_adeq;
 double prev_adeq;
-
-
-//int read_cfg(char *filename) {
-//    FILE *cfgfile = fopen(filename, "r");
-//    if(!cfgfile) {
-//        return 0;
-//    }
-//    fscanf(cfgfile, "%d", &objc);
-//    fscanf(cfgfile, "%d", &dmatrixc);
-//    dmtx_file_name = malloc(sizeof(char *) * dmatrixc);
-//    size_t j;
-//    for(j = 0; j < dmatrixc; ++j) {
-//        dmtx_file_name[j] = malloc(sizeof(char) * BUFF_SIZE);
-//        fscanf(cfgfile, "%s", dmtx_file_name[j]);
-//    }
-//    fscanf(cfgfile, "%s", out_file_name);
-//    fscanf(cfgfile, "%d", &clustc);
-//    fscanf(cfgfile, "%d", &medoids_card);
-//    int insts;
-//    fscanf(cfgfile, "%d", &insts);
-//    if(insts < 0) {
-//        insts = 0;
-//    }
-//    fscanf(cfgfile, "%lf", &theta);
-//    fclose(cfgfile);
-//    return insts;
-//}
 
 void print_weights() {
 	printf("Weights:\n");
