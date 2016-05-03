@@ -1,3 +1,5 @@
+//  TODO:
+//      - Print environment of best instance.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -5,7 +7,9 @@
 #include <math.h>
 #include <string.h>
 
-#define FPOINT_OFFSET 1e-7
+#include "util.h"
+
+#define BUFF_SIZE 1024
 
 typedef struct int_vec {
 	int *get;
@@ -71,37 +75,6 @@ int classc;
 int_vec *sample;
 constraint **constraints;
 size_t constsc;
-
-bool load_data(char *fname, double **matrix) {
-	FILE *ifile = fopen(fname, "r");
-	if(!ifile) {
-		return false;
-	}
-	size_t i;
-	size_t j;
-	for(i = 0; i < objc; ++i) {
-		for(j = 0; j < objc; ++j) {
-			if(fscanf(ifile, "%lf", &matrix[i][j]) == EOF) {
-				fclose(ifile);
-				return false;
-			}
-		}
-	}
-	fclose(ifile);
-	return true;
-}
-
-bool deq(double a, double b) {
-    return (a < (b + FPOINT_OFFSET) && a > (b - FPOINT_OFFSET));
-}
-
-bool dgt(double a, double b) {
-    return a > (b + FPOINT_OFFSET);
-}
-
-bool dlt(double a, double b) {
-    return a < (b - FPOINT_OFFSET);
-}
 
 void print_weights() {
 	printf("Weights:\n");
@@ -772,94 +745,81 @@ void print_constraints() {
 
 int main(int argc, char **argv) {
 	debug = true;
-	size_t argpos = 1;
-    int val;
-	clustc = 3;
-	medoids_card = 3;
-	max_iter = 100;
-	epsilon = 0.000001;
-	theta = 0.02;
-	mfuz = 2;
-	double sample_perc = 0.061;
-	int insts = 10;
-    for(; argpos < argc; ++argpos) {
-        if(!strcmp(argv[argpos], "-k")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: k <= 0.\n");
-                return 1;
-            }
-            clustc = val;
-        } else if(!strcmp(argv[argpos], "-q")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: q <= 0.\n");
-                return 1;
-            }
-            medoids_card = val;
-        } else if(!strcmp(argv[argpos], "-T")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: T <= 0.\n");
-                return 1;
-            }
-            max_iter = val;
-        } else if(!strcmp(argv[argpos], "-e")) {
-            epsilon = atof(argv[++argpos]);
-            if(dlt(epsilon, 0.0)) {
-                printf("Error: e <= 0.\n");
-                return 1;
-            }
-        } else if(!strcmp(argv[argpos], "-t")) {
-            theta = atof(argv[++argpos]);
-            if(dlt(theta, 0.0)) {
-                printf("Error: t <= 0.\n");
-                return 1;
-            }
-        } else if(!strcmp(argv[argpos], "-m")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: m <= 0.\n");
-                return 1;
-            }
-            mfuz = val;
-        } else if(!strcmp(argv[argpos], "-i")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: i <= 0.\n");
-                return 1;
-            }
-            insts = val;
-        } else if(!strcmp(argv[argpos], "--sample")) {
-            sample_perc = atof(argv[++argpos]);
-            if(dlt(sample_perc, 0.0)) {
-                printf("Error: sample_perc < 0.\n");
-                return 1;
-            }
-        } else {
-            break;
+	int insts;
+    FILE *cfgfile = fopen(argv[1], "r");
+    if(!cfgfile) {
+        printf("Error: could not open config file.\n");
+        return 1;
+    }
+    fscanf(cfgfile, "%d", &objc);
+    if(objc <= 0) {
+        printf("Error: objc <= 0.\n");
+        return 2;
+    }
+    // read labels
+    int labels[objc];
+    fscanf(cfgfile, "%d", &classc);
+	size_t i;
+    for(i = 0; i < objc; ++i) {
+        fscanf(cfgfile, "%d", &labels[i]);
+        if(labels[i] < 0 || labels[i] >= classc) {
+            printf("Error: invalid object class.\n");
+            return 2;
         }
     }
-    if((argc - argpos) < 3) {
-        printf("Error: not enough args.\n");
-        return 1;
+    // read labels end
+    fscanf(cfgfile, "%d", &dmatrixc);
+    if(dmatrixc <= 0) {
+        printf("Error: dmatrixc <= 0.\n");
+        return 2;
     }
+    char dmtx_file_name[dmatrixc][BUFF_SIZE];
+	size_t j;
+    for(j = 0; j < dmatrixc; ++j) {
+        fscanf(cfgfile, "%s", dmtx_file_name[j]);
+    }
+    char out_file_name[BUFF_SIZE];
+    fscanf(cfgfile, "%s", out_file_name);
+    fscanf(cfgfile, "%d", &clustc);
+    if(clustc <= 0) {
+        printf("Error: clustc <= 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%d", &medoids_card);
+    if(medoids_card <= 0) {
+        printf("Error: medoids_card <= 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%d", &insts);
+    if(insts <= 0) {
+        printf("Error: insts <= 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%lf", &theta);
+    if(dlt(theta, 0.0)) {
+        printf("Error: theta < 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%d", &max_iter);
+    fscanf(cfgfile, "%lf", &epsilon);
+    if(dlt(epsilon, 0.0)) {
+        printf("Error: epsilon < 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%lf", &mfuz);
+    if(!dgt(mfuz, 0.0)) {
+        printf("Error: mfuz <= 0.\n");
+        return 2;
+    }
+    double sample_perc;
+    fscanf(cfgfile, "%lf", &sample_perc);
+    if(dlt(sample_perc, 0.0)) {
+        printf("Error: sample_perc < 0.\n");
+        return 2;
+    }
+    fclose(cfgfile);
+    freopen(out_file_name, "w", stdout);
 	mfuzval = 1.0 / (mfuz - 1.0);
-	char *class_fname = argv[argpos++];
-	objc = atoi(argv[argpos++]);
-	if(objc <= 0) {
-		printf("Error: objc <= 0.\n");
-		return 1;
-	}
-	dmatrixc = atoi(argv[argpos++]);
-	if(dmatrixc <= 0) {
-		printf("Error: dmatrixc <= 0.\n");
-		return 1;
-	}
-    if((argc - argpos) < dmatrixc) {
-        printf("Error: not enough args.\n");
-        return 1;
-    }
     printf("######Config summary:######\n");
     printf("Number of clusters: %d.\n", clustc);
     printf("Medoids cardinality: %d.\n", medoids_card);
@@ -870,13 +830,6 @@ int main(int argc, char **argv) {
     printf("Number of instances: %d.\n", insts);
     printf("Sample percentage: %lf.\n", sample_perc);
     printf("###########################\n");
-    if(!load_class_file(class_fname)) {
-		printf("Error: could not load class file.\n");
-		return 2;
-	}
-	print_class();
-	size_t i;
-	size_t j;
 	size_t k;
 	// Allocating memory start
 	parc_cluster_adeq = malloc(sizeof(double) * clustc);
@@ -900,10 +853,20 @@ int main(int argc, char **argv) {
 	for(i = 0; i < objc; ++i) {
 		memb[i] = malloc(sizeof(double) * clustc);
 	}
+    class = malloc(sizeof(int_vec) * classc);
+    for(i = 0; i < classc; ++i) {
+        int_vec_init(&class[i], objc);
+    }
 	// Allocating memory end
-	for(j = 0; j < dmatrixc; ++j, ++argpos) {
-		if(!load_data(argv[argpos], dmatrix[j])) {
-			printf("Error: could not load %s.\n", argv[argpos]);
+    // Loading labels
+    for(i = 0; i < objc; ++i) {
+        int_vec_push(&class[labels[i]], i);
+    }
+	print_class();
+    // Loading matrices
+	for(j = 0; j < dmatrixc; ++j) {
+		if(!load_data(dmtx_file_name[j], dmatrix[j], objc, objc)) {
+			printf("Error: could not load %s.\n", dmtx_file_name[j]);
 			goto END;
 		}
 	}
