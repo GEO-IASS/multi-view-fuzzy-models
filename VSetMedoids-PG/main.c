@@ -5,7 +5,9 @@
 #include <math.h>
 #include <string.h>
 
-#define FPOINT_OFFSET 1e-10
+#include "util.h"
+
+#define BUFF_SIZE 1024
 
 bool debug;
 size_t max_iter;
@@ -24,104 +26,6 @@ double theta;
 double *parc_obj_adeq;
 double *parc_cluster_adeq;
 double prev_adeq;
-
-bool load_data(char *fname, double **matrix) {
-	FILE *ifile = fopen(fname, "r");
-	if(!ifile) {
-		return false;
-	}
-	size_t i;
-	size_t j;
-	for(i = 0; i < objc; ++i) {
-		for(j = 0; j < objc; ++j) {
-			if(fscanf(ifile, "%lf", &matrix[i][j]) == EOF) {
-				fclose(ifile);
-				return false;
-			}
-		}
-	}
-	fclose(ifile);
-	return true;
-}
-
-void print_mtx_d(double **matrix, size_t nrow, size_t ncol, bool lnum) {
-	size_t i;
-	size_t j;
-	size_t last = ncol - 1;
-	for(i = 0; i < nrow; ++i) {
-	    if(lnum) {
-	        printf("%d: ", i + 1);
-	    }
-		for(j = 0; j < last; ++j) {
-			printf("%lf ", matrix[i][j]);
-		}
-		printf("%lf\n", matrix[i][j]);
-	}
-}
-
-void fprint_mtx_d(FILE *file, double **matrix, size_t nrow,
-					size_t ncol) {
-	size_t i;
-	size_t j;
-	size_t last = ncol - 1;
-	for(i = 0; i < nrow; ++i) {
-		for(j = 0; j < last; ++j) {
-			fprintf(file, "%.4lf ", matrix[i][j]);
-		}
-		fprintf(file, "%.4lf\n", matrix[i][j]);
-	}
-}
-
-void print_mtx_size_t(size_t **matrix, size_t nrow, size_t ncol, bool lnum) {
-	size_t i;
-	size_t j;
-	size_t last = ncol - 1;
-	for(i = 0; i < nrow; ++i) {
-	    if(lnum) {
-	        printf("%d: ", i + 1);
-	    }
-		for(j = 0; j < last; ++j) {
-			printf("%u ", matrix[i][j]);
-		}
-		printf("%u\n", matrix[i][j]);
-	}
-}
-
-bool deq(double a, double b) {
-    return (a < (b + FPOINT_OFFSET) && a > (b - FPOINT_OFFSET));
-}
-
-bool dgt(double a, double b) {
-    return a > (b + FPOINT_OFFSET);
-}
-
-bool dlt(double a, double b) {
-    return a < (b - FPOINT_OFFSET);
-}
-
-void mtxcpy(void **destination, const void **source, size_t nrow,
-        size_t num) {
-    size_t i;
-    for(i = 0; i < nrow; ++i) {
-        memcpy(destination[i], source[i], num);
-    }
-}
-
-void mtxcpy_d(double **destination, double **source, size_t nrow,
-        size_t ncol) {
-    size_t i;
-    for(i = 0; i < nrow; ++i) {
-        memcpy(destination[i], source[i], sizeof(double) * ncol);
-    }
-}
-
-void mtxcpy_size_t(size_t **destination, size_t **source, size_t nrow,
-        size_t ncol) {
-    size_t i;
-    for(i = 0; i < nrow; ++i) {
-        memcpy(destination[i], source[i], sizeof(size_t) * ncol);
-    }
-}
 
 void print_weights() {
 	printf("Weights:\n");
@@ -656,86 +560,70 @@ void global_energy() {
 
 int main(int argc, char **argv) {
 	debug = true;
-	size_t argpos = 1;
-    int val;
-	clustc = 3;
-	medoids_card = 3;
-	max_iter = 100;
-	epsilon = 0.000001;
-	theta = 0.02;
-	mfuz = 2;
-	int insts = 10;
-    for(; argpos < argc; ++argpos) {
-        if(!strcmp(argv[argpos], "-k")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: k <= 0.\n");
-                return 1;
-            }
-            clustc = val;
-        } else if(!strcmp(argv[argpos], "-q")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: q <= 0.\n");
-                return 1;
-            }
-            medoids_card = val;
-        } else if(!strcmp(argv[argpos], "-T")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: T <= 0.\n");
-                return 1;
-            }
-            max_iter = val;
-        } else if(!strcmp(argv[argpos], "-e")) {
-            epsilon = atof(argv[++argpos]);
-            if(epsilon < 0) {
-                printf("Error: e <= 0.\n");
-                return 1;
-            }
-        } else if(!strcmp(argv[argpos], "-t")) {
-            theta = atof(argv[++argpos]);
-            if(theta < 0) {
-                printf("Error: t <= 0.\n");
-                return 1;
-            }
-        } else if(!strcmp(argv[argpos], "-m")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: m <= 0.\n");
-                return 1;
-            }
-            mfuz = val;
-        } else if(!strcmp(argv[argpos], "-i")) {
-            val = atoi(argv[++argpos]);
-            if(val <= 0) {
-                printf("Error: i <= 0.\n");
-                return 1;
-            }
-            insts = val;
-        } else {
-            break;
-        }
-    }
-    if((argc - argpos) < 2) {
-        printf("Error: not enough args.\n");
+	int insts;
+    FILE *cfgfile = fopen(argv[1], "r");
+    if(!cfgfile) {
+        printf("Error: could not open config file.\n");
         return 1;
     }
+    fscanf(cfgfile, "%d", &objc);
+    if(objc <= 0) {
+        printf("Error: objc <= 0.\n");
+        return 2;
+    }
+    // ignore labels
+    fscanf(cfgfile, "%*d");
+	size_t i;
+    for(i = 0; i < objc; ++i) {
+        fscanf(cfgfile, "%*d");
+    }
+    // ignore labels end
+    fscanf(cfgfile, "%d", &dmatrixc);
+    if(dmatrixc <= 0) {
+        printf("Error: dmatrixc <= 0.\n");
+        return 2;
+    }
+    char dmtx_file_name[dmatrixc][BUFF_SIZE];
+	size_t j;
+    for(j = 0; j < dmatrixc; ++j) {
+        fscanf(cfgfile, "%s", dmtx_file_name[j]);
+    }
+    char out_file_name[BUFF_SIZE];
+    fscanf(cfgfile, "%s", out_file_name);
+    fscanf(cfgfile, "%d", &clustc);
+    if(clustc <= 0) {
+        printf("Error: clustc <= 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%d", &medoids_card);
+    if(medoids_card <= 0) {
+        printf("Error: medoids_card <= 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%d", &insts);
+    if(insts <= 0) {
+        printf("Error: insts <= 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%lf", &theta);
+    if(dlt(theta, 0.0)) {
+        printf("Error: theta < 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%d", &max_iter);
+    fscanf(cfgfile, "%lf", &epsilon);
+    if(dlt(epsilon, 0.0)) {
+        printf("Error: epsilon < 0.\n");
+        return 2;
+    }
+    fscanf(cfgfile, "%lf", &mfuz);
+    if(!dgt(mfuz, 0.0)) {
+        printf("Error: mfuz <= 0.\n");
+        return 2;
+    }
+    fclose(cfgfile);
+    freopen(out_file_name, "w", stdout);
 	mfuzval = 1.0 / (mfuz - 1.0);
-	objc = atoi(argv[argpos++]);
-	if(objc <= 0) {
-		printf("Error: objc <= 0.\n");
-		return 1;
-	}
-	dmatrixc = atoi(argv[argpos++]);
-	if(dmatrixc <= 0) {
-		printf("Error: dmatrixc <= 0.\n");
-		return 1;
-	}
-    if((argc - argpos) < dmatrixc) {
-        printf("Error: not enough args.\n");
-        return 1;
-    }
     printf("######Config summary:######\n");
     printf("Number of clusters: %d.\n", clustc);
     printf("Medoids cardinality: %d.\n", medoids_card);
@@ -745,8 +633,6 @@ int main(int argc, char **argv) {
     printf("Parameter m: %.15lf.\n", mfuz);
     printf("Number of instances: %d.\n", insts);
     printf("###########################\n");
-	size_t i;
-	size_t j;
 	size_t k;
 	// Allocating memory start
 	parc_cluster_adeq = malloc(sizeof(double) * clustc);
@@ -777,9 +663,9 @@ int main(int argc, char **argv) {
 		best_memb[i] = malloc(sizeof(double) * clustc);
 	}
 	// Allocating memory end
-	for(j = 0; j < dmatrixc; ++j, ++argpos) {
-		if(!load_data(argv[argpos], dmatrix[j])) {
-			printf("Error: could not load %s.\n", argv[argpos]);
+	for(j = 0; j < dmatrixc; ++j) {
+		if(!load_data(dmtx_file_name[j], dmatrix[j], objc, objc)) {
+			printf("Error: could not load %s.\n", dmtx_file_name[j]);
 			goto END;
 		}
 	}
@@ -825,6 +711,7 @@ int main(int argc, char **argv) {
 	printf("\n");
     global_energy();
 END:
+    fclose(stdout);
 	for(i = 0; i < dmatrixc; ++i) {
 		for(j = 0; j < objc; ++j) {
 			free(dmatrix[i][j]);
