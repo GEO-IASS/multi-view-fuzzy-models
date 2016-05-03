@@ -645,7 +645,7 @@ void print_class() {
 	size_t i;
 	size_t k;
 	for(k = 0; k < classc; ++k) {
-		printf("Class %zu (%zu members):\n", k, class[k].size);
+		printf("Class %d (%d members):\n", k, class[k].size);
 		for(i = 0; i < class[k].size; ++i) {
 			printf("%u ", class[k].get[i]);
 		}
@@ -654,7 +654,7 @@ void print_class() {
 }
 
 void gen_sample(size_t size) {
-	printf("sample size: %zu\n", size);
+	printf("sample size: %d\n", size);
 	sample = malloc(sizeof(int_vec) * classc);
 	size_t per_class = size / classc;
 	constsc = per_class * classc;
@@ -681,7 +681,7 @@ void print_sample() {
 	size_t i;
 	size_t k;
 	for(k = 0; k < classc; ++k) {
-		printf("Sample %zu (%zu members):\n", k, sample[k].size);
+		printf("Sample %d (%d members):\n", k, sample[k].size);
 		for(i = 0; i < sample[k].size; ++i) {
 			printf("%u ", sample[k].get[i]);
 		}
@@ -728,15 +728,15 @@ void print_constraints() {
 	for(k = 0; k < classc; ++k) {
 		for(i = 0; i < sample[k].size; ++i) {
 			obj = sample[k].get[i];
-            printf("Obj %zu:\n", obj);
+            printf("Obj %d:\n", obj);
             printf("ML:");
             for(e = 0; e < constraints[obj]->ml->size; ++e) {
-                printf(" %zu", constraints[obj]->ml->get[e]);
+                printf(" %d", constraints[obj]->ml->get[e]);
             }
             printf("\n");
             printf("MNL:");
             for(e = 0; e < constraints[obj]->mnl->size; ++e) {
-                printf(" %zu", constraints[obj]->mnl->get[e]);
+                printf(" %d", constraints[obj]->mnl->get[e]);
             }
             printf("\n");
 		}
@@ -842,16 +842,22 @@ int main(int argc, char **argv) {
 		}
 	}
 	medoids = malloc(sizeof(size_t *) * clustc);
+    size_t **best_medoids = malloc(sizeof(size_t *) * clustc);
 	for(k = 0; k < clustc; ++k) {
 		medoids[k] = malloc(sizeof(size_t) * medoids_card);
+		best_medoids[k] = malloc(sizeof(size_t) * medoids_card);
 	}
 	weights = malloc(sizeof(double *) * clustc);
+	double **best_weights = malloc(sizeof(double *) * clustc);
 	for(k = 0; k < clustc; ++k) {
 		weights[k] = malloc(sizeof(double) * dmatrixc);
+		best_weights[k] = malloc(sizeof(double) * dmatrixc);
 	}
 	memb = malloc(sizeof(double *) * objc);
+	double **best_memb = malloc(sizeof(double *) * objc);
 	for(i = 0; i < objc; ++i) {
 		memb[i] = malloc(sizeof(double) * clustc);
+		best_memb[i] = malloc(sizeof(double) * clustc);
 	}
     class = malloc(sizeof(int_vec) * classc);
     for(i = 0; i < classc; ++i) {
@@ -882,12 +888,31 @@ int main(int argc, char **argv) {
 		printf("Instance %u:\n", i);
 		cur_inst_adeq = run();
         if(i == 1 || cur_inst_adeq < best_inst_adeq) {
+            mtxcpy_d(best_memb, memb, objc, clustc);
+            mtxcpy_d(best_weights, weights, clustc, dmatrixc);
+            mtxcpy_size_t(best_medoids, medoids, clustc,
+                    medoids_card);
             best_inst_adeq = cur_inst_adeq;
             best_inst = i;
         }
 	}
     printf("Best adequacy %.15lf on instance %d.\n",
             best_inst_adeq, best_inst);
+    printf("\n");
+    size_t **swp2 = medoids;
+    medoids = best_medoids;
+    best_medoids = swp2;
+    print_medoids();
+    printf("\n");
+    double **swp = memb;
+	memb = best_memb;
+	best_memb = swp;
+	print_memb();
+	printf("\n");
+	swp = weights;
+	weights = best_weights;
+	best_weights = swp;
+	print_weights();
 END:
 	for(i = 0; i < dmatrixc; ++i) {
 		for(j = 0; j < objc; ++j) {
@@ -898,18 +923,24 @@ END:
 	free(dmatrix);
 	for(k = 0; k < clustc; ++k) {
 		free(medoids[k]);
+		free(best_medoids[k]);
 		free(weights[k]);
+		free(best_weights[k]);
 	}
 	free(medoids);
+	free(best_medoids);
 	free(weights);
+	free(best_weights);
 	for(i = 0; i < objc; ++i) {
 		free(memb[i]);
+		free(best_memb[i]);
 		if(constraints[i]) {
             constraint_free(constraints[i]);
         }
 	}
     free(constraints);
 	free(memb);
+	free(best_memb);
 	for(i = 0; i < classc; ++i) {
 		int_vec_free(&class[i]);
 		int_vec_free(&sample[i]);

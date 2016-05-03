@@ -488,7 +488,8 @@ int main(int argc, char **argv) {
         if(i == 1 || cur_inst_adeq < best_inst_adeq) {
             mtxcpy_d(best_memb, memb, objc, clustc);
             mtxcpy_d(best_weights, weights, clustc, dmatrixc);
-            mtxcpy_size_t(best_medoids, medoids, clustc, medoids_card);
+            mtxcpy_size_t(best_medoids, medoids, clustc,
+                    medoids_card);
             best_inst_adeq = cur_inst_adeq;
             best_inst = i;
         }
