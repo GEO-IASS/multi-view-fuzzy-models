@@ -56,7 +56,7 @@ double mfuz;
 double mfuzval;
 double ***dmatrix;
 int dmatrixc;
-size_t **medoids;
+size_t ***medoids;
 size_t medoids_card;
 double **weights;
 double **memb;
@@ -99,36 +99,44 @@ void print_weights() {
 
 void init_medoids() {
 	size_t i;
+    size_t j;
 	size_t e;
 	size_t k;
 	int obj;
 	bool chosen[objc];
 	for(k = 0; k < clustc; ++k) {
-		for(i = 0; i < objc; ++i) {
-			chosen[i] = false;
-		}
-		for(e = 0; e < medoids_card; ++e) {
-			do {
-				obj = rand() % objc;
-			} while(chosen[obj]);
-			medoids[k][e] = obj;
-			chosen[obj] = true;
-		}
+        for(j = 0; j < dmatrixc; ++j) {
+            for(i = 0; i < objc; ++i) {
+                chosen[i] = false;
+            }
+            for(e = 0; e < medoids_card; ++e) {
+                do {
+                    obj = rand() % objc;
+                } while(chosen[obj]);
+                medoids[k][j][e] = obj;
+                chosen[obj] = true;
+            }
+        }
 	}
 }
 
 void print_medoids() {
     printf("Medoids:\n");
-    size_t k;
     size_t e;
-    size_t last = medoids_card - 1;
+    size_t j;
+    size_t k;
     for(k = 0; k < clustc; ++k) {
-        for(e = 0; e < last; ++e) {
-            printf("%d ", medoids[k][e]);
+        for(j = 0; j < dmatrixc; ++j) {
+            printf("{ ");
+            for(e = 0; e < medoids_card; ++e) {
+                printf("%d ", medoids[k][j][e]);
+            }
+            printf("} ");
         }
-        printf("%d\n", medoids[k][e]);
+        printf("\n");
     }
 }
+
 void print_memb() {
 	printf("Membership:\n");
 	size_t i;
@@ -169,7 +177,7 @@ void constrained_update_memb() {
 			for(j = 0; j < dmatrixc; ++j) {
 				sumd = 0.0;
 				for(e = 0; e < medoids_card; ++e) {
-					sumd += dmatrix[j][i][medoids[k][e]];
+					sumd += dmatrix[j][i][medoids[k][j][e]];
 				}
 				mtx_a[i][k] += weights[k][j] * sumd;
 			}
@@ -265,7 +273,7 @@ void update_memb() {
 			for(j = 0; j < dmatrixc; ++j) {
 				sumd = 0.0;
 				for(e = 0; e < medoids_card; ++e) {
-					sumd += dmatrix[j][i][medoids[k][e]];
+					sumd += dmatrix[j][i][medoids[k][j][e]];
 				}
 				sums[k] += weights[k][j] * sumd;
 			}
@@ -317,7 +325,7 @@ double adequacy_cluster(bool check) {
 			for(j = 0; j < dmatrixc; ++j) {
 				sumd = 0.0;
 				for(e = 0; e < medoids_card; ++e) {
-					sumd += dmatrix[j][i][medoids[k][e]];
+					sumd += dmatrix[j][i][medoids[k][j][e]];
 				}
 				sumweights += weights[k][j] * sumd;
 			}
@@ -403,7 +411,7 @@ double adequacy_obj(bool check) {
 			for(j = 0; j < dmatrixc; ++j) {
 				sumd = 0.0;
 				for(e = 0; e < medoids_card; ++e) {
-					sumd += dmatrix[j][i][medoids[k][e]];
+					sumd += dmatrix[j][i][medoids[k][j][e]];
 				}
 				sumweights += weights[k][j] * sumd;
 			}
@@ -489,22 +497,20 @@ void update_medoids() {
 	size_t j;
 	size_t k;
 	objnval candidates[objc];
-	double sumweights;
 	for(k = 0; k < clustc; ++k) {
-		for(h = 0; h < objc; ++h) {
-			candidates[h].obj = h;
-			candidates[h].val = 0.0;
-			for(i = 0; i < objc; ++i) {
-				sumweights = 0.0;
-				for(j = 0; j < dmatrixc; ++j) {
-					sumweights += weights[k][j] * dmatrix[j][i][h];
-				}
-				candidates[h].val += pow(memb[i][k], mfuz) * sumweights;
-			}
-		}
-		qsort(candidates, objc, sizeof(objnval), objnval_cmp);
-        for(h = 0; h < medoids_card; ++h) {
-            medoids[k][h] = candidates[h].obj;
+        for(j = 0; j < dmatrixc; ++j) {
+            for(h = 0; h < objc; ++h) {
+                candidates[h].obj = h;
+                candidates[h].val = 0.0;
+                for(i = 0; i < objc; ++i) {
+                    candidates[h].val += pow(memb[i][k], mfuz) *
+                                            dmatrix[j][i][h];
+                }
+            }
+            qsort(candidates, objc, sizeof(objnval), objnval_cmp);
+            for(h = 0; h < medoids_card; ++h) {
+                medoids[k][j][h] = candidates[h].obj;
+            }
         }
 	}
 }
@@ -527,7 +533,7 @@ void update_weights() {
 			for(i = 0; i < objc; ++i) {
 				sumd = 0.0;
 				for(e = 0; e < medoids_card; ++e) {
-					sumd += dmatrix[j][i][medoids[k][e]];
+					sumd += dmatrix[j][i][medoids[k][j][e]];
 				}
 				sums[j] += pow(memb[i][k], mfuz) * sumd;
 			}
@@ -839,11 +845,16 @@ int main(int argc, char **argv) {
 			dmatrix[j][i] = malloc(sizeof(double) * objc);
 		}
 	}
-	medoids = malloc(sizeof(size_t *) * clustc);
-    size_t **best_medoids = malloc(sizeof(size_t *) * clustc);
+	medoids = malloc(sizeof(size_t **) * clustc);
+	size_t ***best_medoids = malloc(sizeof(size_t **) * clustc);
 	for(k = 0; k < clustc; ++k) {
-		medoids[k] = malloc(sizeof(size_t) * medoids_card);
-		best_medoids[k] = malloc(sizeof(size_t) * medoids_card);
+		medoids[k] = malloc(sizeof(size_t *) * dmatrixc);
+		best_medoids[k] = malloc(sizeof(size_t *) * dmatrixc);
+        for(j = 0; j < dmatrixc; ++j) {
+            medoids[k][j] = malloc(sizeof(size_t) * medoids_card);
+            best_medoids[k][j] = malloc(sizeof(size_t) *
+                                        medoids_card);
+        }
 	}
 	weights = malloc(sizeof(double *) * clustc);
 	double **best_weights = malloc(sizeof(double *) * clustc);
@@ -888,8 +899,10 @@ int main(int argc, char **argv) {
         if(i == 1 || cur_inst_adeq < best_inst_adeq) {
             mtxcpy_d(best_memb, memb, objc, clustc);
             mtxcpy_d(best_weights, weights, clustc, dmatrixc);
-            mtxcpy_size_t(best_medoids, medoids, clustc,
-                    medoids_card);
+            for(k = 0; k < clustc; ++k) {
+                mtxcpy_size_t(best_medoids[k], medoids[k], dmatrixc,
+                        medoids_card);
+            }
             best_inst_adeq = cur_inst_adeq;
             best_inst = i;
         }
@@ -897,7 +910,7 @@ int main(int argc, char **argv) {
     printf("Best adequacy %.15lf on instance %d.\n",
             best_inst_adeq, best_inst);
     printf("\n");
-    size_t **swp2 = medoids;
+    size_t ***swp2 = medoids;
     medoids = best_medoids;
     best_medoids = swp2;
     print_medoids();
@@ -920,6 +933,10 @@ END:
 	}
 	free(dmatrix);
 	for(k = 0; k < clustc; ++k) {
+        for(j = 0; j < dmatrixc; ++j) {
+            free(medoids[k][j]);
+            free(best_medoids[k][j]);
+        }
 		free(medoids[k]);
 		free(best_medoids[k]);
 		free(weights[k]);
