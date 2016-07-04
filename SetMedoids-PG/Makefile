@@ -1,10 +1,10 @@
-TARGET = nerf
+TARGET = main
 
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -O3
 
 LINKER = gcc -o
-LFLAGS = -Wall
+LFLAGS = -Wall -O3
 POSTLFLAGS = -lm
 
 SRCDIR = src
