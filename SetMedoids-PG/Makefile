@@ -1,17 +1,35 @@
-CC=gcc
-CFLAGS=-Wall -c
-EXEDIR=.
+TARGET = nerf
 
-all: $(EXEDIR)/main
+CC = gcc
+CFLAGS = -Wall
 
-$(EXEDIR)/main: util.o main.o
-	$(CC) util.o main.o -o $@ -lm
+LINKER = gcc -o
+LFLAGS = -Wall
+POSTLFLAGS = -lm
 
-main.o: main.c
-	$(CC) $(CFLAGS) main.c
+SRCDIR = src
+OBJDIR = obj
+BINDIR = bin
 
-util.o: util.c
-	$(CC) $(CFLAGS) util.c
+SOURCES	:= $(wildcard $(SRCDIR)/*.c)
+INCLUDES := $(wildcard $(SRCDIR)/*.h)
+OBJECTS := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+rm = rm -f
 
+$(BINDIR)/$(TARGET): $(OBJECTS)
+	@$(LINKER) $@ $(LFLAGS) $(OBJECTS) $(POSTLFLAGS)
+	@echo "Linking complete"
+
+$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
+	@$(CC) $(CFLAGS) -c $< -o $@ 
+	@echo "Compiled "$<" successfully"
+
+.PHONEY: clean
 clean:
-	rm -rf *o $(EXEDIR)/main
+	@$(rm) $(OBJECTS)
+	@echo "Cleanup complete"
+
+.PHONEY: remove 
+remove: clean
+	@$(rm) $(BINDIR)/$(TARGET)
+	@echo "Executable removed"
