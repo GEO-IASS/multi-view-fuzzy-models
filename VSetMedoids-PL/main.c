@@ -27,7 +27,7 @@ double *parc_obj_adeq;
 double *parc_cluster_adeq;
 double prev_adeq;
 
-void print_weights() {
+void print_weights(double **weights) {
 	printf("Weights:\n");
 	size_t j;
 	size_t k;
@@ -73,7 +73,7 @@ void init_medoids() {
 	}
 }
 
-void print_medoids() {
+void print_medoids(size_t ***medoids) {
     printf("Medoids:\n");
     size_t e;
     size_t j;
@@ -90,7 +90,7 @@ void print_medoids() {
     }
 }
 
-void print_memb() {
+void print_memb(double **memb) {
 	printf("Membership:\n");
 	size_t i;
 	size_t k;
@@ -327,16 +327,16 @@ double run() {
 	size_t k;
 	printf("Initialization.\n");
 	init_medoids();
-    print_medoids();
+    print_medoids(medoids);
 	for(k = 0; k < clustc; ++k) {
 		for(j = 0; j < dmatrixc; ++j) {
 			weights[k][j] = 1.0;
 		}
 	}
-	print_weights();
+	print_weights(weights);
 	update_memb();
     //memb_adequacy(false);
-	print_memb();
+	print_memb(memb);
 	double prev_adeq = 0.0;
 	double adeq = adequacy_obj(false);
 	printf("Adequacy: %.20lf\n", adeq);
@@ -347,17 +347,17 @@ double run() {
 		adequacy_cluster(false);
         update_medoids();
 		adeq = adequacy_cluster(true);
-        print_medoids();
+        print_medoids(medoids);
         printf("Adequacy1: %.20lf\n", adeq);
 		adequacy_cluster(false);
         update_weights();
 		adeq = adequacy_cluster(true);
-        print_weights();
+        print_weights(weights);
         printf("Adequacy2: %.20lf\n", adeq);
 		adequacy_obj(false);
         update_memb();
 		adeq = adequacy_obj(true);
-        print_memb();
+        print_memb(memb);
         printf("Adequacy: %.20lf\n", adeq);
         if(dgt(adeq, prev_adeq)) {
             printf("Warn: current adequacy is greater than "
@@ -702,20 +702,11 @@ int main(int argc, char **argv) {
     printf("Best adequacy %.15lf on instance %d.\n",
             best_inst_adeq, best_inst);
     printf("\n");
-    size_t ***swp2 = medoids;
-    medoids = best_medoids;
-    best_medoids = swp2;
-    print_medoids();
+    print_medoids(best_medoids);
     printf("\n");
-    double **swp = memb;
-	memb = best_memb;
-	best_memb = swp;
-	print_memb();
+	print_memb(best_memb);
 	printf("\n");
-	swp = weights;
-	weights = best_weights;
-	best_weights = swp;
-	print_weights();
+	print_weights(best_weights);
 	printf("\n");
     global_energy();
 END:
