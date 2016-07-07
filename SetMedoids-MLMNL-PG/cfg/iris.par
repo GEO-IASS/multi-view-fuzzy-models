@@ -1,0 +1,16 @@
+150
+3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
+4
+/home/dppb/Documents/university/masters/data/datasets/iris/iris.data.1
+/home/dppb/Documents/university/masters/data/datasets/iris/iris.data.2
+/home/dppb/Documents/university/masters/data/datasets/iris/iris.data.3
+/home/dppb/Documents/university/masters/data/datasets/iris/iris.data.4
+out-iris.txt
+3
+3
+10
+0.02
+10
+1e-10
+2.0
+0.1
