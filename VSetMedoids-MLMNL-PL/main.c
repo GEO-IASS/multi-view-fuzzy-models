@@ -6,8 +6,11 @@
 #include <string.h>
 
 #include "util.h"
+#include "matrix.h"
+#include "stex.h"
 
 #define BUFF_SIZE 1024
+#define HEADER_SIZE 51
 
 typedef struct int_vec {
 	int *get;
@@ -747,6 +750,53 @@ void print_constraints() {
 	}
 }
 
+st_matrix* medoid_dist(double **weights, size_t ***medoids) {
+    st_matrix *ret = malloc(sizeof(st_matrix));
+    init_st_matrix(ret, objc, clustc);
+    size_t e;
+    size_t i;
+    size_t j;
+    size_t k;
+    double val;
+    double sumd;
+    for(i = 0; i < objc; ++i) {
+        for(k = 0; k < clustc; ++k) {
+            val = 0.0;
+            for(j = 0; j < dmatrixc; ++j) {
+                sumd = 0.0;
+                for(e = 0; e < medoids_card; ++e) {
+                    sumd += dmatrix[j][i][medoids[k][j][e]];
+                }
+                val += weights[k][j] * sumd;
+            }
+            set(ret, i, k, val);
+        }
+    }
+    return ret;
+}
+
+st_matrix* agg_dmatrix(double **weights) {
+    st_matrix *ret = malloc(sizeof(st_matrix));
+    init_st_matrix(ret, objc, objc);
+    size_t e;
+    size_t i;
+    size_t j;
+    size_t k;
+    double val;
+    for(i = 0; i < objc; ++i) {
+        for(e = 0; e < objc; ++e) {
+            val = 0.0;
+            for(k = 0; k < clustc; ++k) {
+                for(j = 0; j < dmatrixc; ++j) {
+                    val += weights[k][j] * dmatrix[j][i][e];
+                }
+            }
+            set(ret, i, e, val);
+        }
+    }
+    return ret;
+}
+
 int main(int argc, char **argv) {
 	debug = true;
 	int insts;
@@ -885,10 +935,25 @@ int main(int argc, char **argv) {
 			goto END;
 		}
 	}
+    double avg_partcoef;
+    double avg_modpcoef;
+    double avg_partent;
+    double avg_aid;
+    silhouet *csil;
+    silhouet *fsil;
+    silhouet *ssil;
+    silhouet *avg_csil;
+    silhouet *avg_fsil;
+    silhouet *avg_ssil;
+    int *pred;
+    st_matrix *groups;
+    st_matrix *dists;
+    st_matrix *agg_dmtx;
+    st_matrix *memb_mtx;
+	srand(time(NULL));
     size_t best_inst;
     double best_inst_adeq;
     double cur_inst_adeq;
-	srand(time(NULL));
 	gen_sample(sample_perc * objc);
 	print_sample();
 	gen_constraints();
@@ -896,6 +961,48 @@ int main(int argc, char **argv) {
 	for(i = 1; i <= insts; ++i) {
 		printf("Instance %u:\n", i);
 		cur_inst_adeq = run();
+        memb_mtx = convert_mtx(memb, objc, clustc);
+        pred = defuz(memb_mtx);
+        groups = asgroups(pred, objc, classc);
+        agg_dmtx = agg_dmatrix(weights);
+        dists = medoid_dist(weights, medoids);
+        csil = crispsil(groups, agg_dmtx);
+        fsil = fuzzysil(csil, groups, memb_mtx, mfuz);
+        ssil = simplesil(pred, dists);
+        if(i == 1) {
+            avg_partcoef = partcoef(memb_mtx);
+            avg_modpcoef = modpcoef(memb_mtx);
+            avg_partent = partent(memb_mtx);
+            avg_aid = avg_intra_dist(memb_mtx, dists, mfuz);
+            avg_csil = csil;
+            avg_fsil = fsil;
+            avg_ssil = ssil;
+        } else {
+            avg_partcoef = (avg_partcoef + partcoef(memb_mtx)) / 2.0;
+            avg_modpcoef = (avg_modpcoef + modpcoef(memb_mtx)) / 2.0;
+            avg_partent = (avg_partent + partent(memb_mtx)) / 2.0;
+            avg_aid = (avg_aid +
+                        avg_intra_dist(memb_mtx, dists, mfuz)) / 2.0;
+            avg_silhouet(avg_csil, csil);
+            avg_silhouet(avg_fsil, fsil);
+            avg_silhouet(avg_ssil, ssil);
+            free_silhouet(csil);
+            free(csil);
+            free_silhouet(fsil);
+            free(fsil);
+            free_silhouet(ssil);
+            free(ssil);
+        }
+        free_st_matrix(memb_mtx);
+        free(memb_mtx);
+        free(pred);
+        free_st_matrix(groups);
+        free(groups);
+        free_st_matrix(agg_dmtx);
+        free(agg_dmtx);
+        free_st_matrix(dists);
+        free(dists);
+		printf("\n");
         if(i == 1 || cur_inst_adeq < best_inst_adeq) {
             mtxcpy_d(best_memb, memb, objc, clustc);
             mtxcpy_d(best_weights, weights, clustc, dmatrixc);
@@ -915,6 +1022,70 @@ int main(int argc, char **argv) {
 	print_memb(best_memb);
 	printf("\n");
 	print_weights(best_weights);
+
+    st_matrix *best_memb_mtx = convert_mtx(best_memb, objc, clustc);
+    pred = defuz(best_memb_mtx);
+    groups = asgroups(pred, objc, classc);
+    print_header("Partitions", HEADER_SIZE);
+    print_groups(groups);
+
+    dists = medoid_dist(best_weights, best_medoids);
+    print_header("Best instance indexes", HEADER_SIZE);
+    printf("\nPartition coefficient: %.10lf\n",
+            partcoef(best_memb_mtx));
+    printf("Modified partition coefficient: %.10lf\n",
+            modpcoef(best_memb_mtx));
+    printf("Partition entropy: %.10lf (max: %.10lf)\n",
+            partent(best_memb_mtx), log(clustc));
+    printf("Average intra cluster distance: %.10lf\n",
+            avg_intra_dist(best_memb_mtx, dists, mfuz));
+
+    print_header("Average indexes", HEADER_SIZE);
+    printf("\nPartition coefficient: %.10lf\n", avg_partcoef);
+    printf("Modified partition coefficient: %.10lf\n", avg_modpcoef);
+    printf("Partition entropy: %.10lf (max: %.10lf)\n", avg_partent,
+            log(clustc));
+    printf("Average intra cluster distance: %.10lf\n", avg_aid);
+
+    print_header("Averaged crisp silhouette", HEADER_SIZE);
+    print_silhouet(avg_csil);
+    print_header("Averaged fuzzy silhouette", HEADER_SIZE);
+    print_silhouet(avg_fsil);
+    print_header("Averaged simple silhouette", HEADER_SIZE);
+    print_silhouet(avg_ssil);
+
+    agg_dmtx = agg_dmatrix(best_weights);
+    csil = crispsil(groups, agg_dmtx);
+    print_header("Best instance crisp silhouette", HEADER_SIZE);
+    print_silhouet(csil);
+    fsil = fuzzysil(csil, groups, best_memb_mtx, mfuz);
+    print_header("Best instance fuzzy silhouette", HEADER_SIZE);
+    print_silhouet(fsil);
+    ssil = simplesil(pred, dists);
+    print_header("Best instance simple silhouette", HEADER_SIZE);
+    print_silhouet(ssil);
+
+    free_st_matrix(best_memb_mtx);
+    free(best_memb_mtx);
+    free(pred);
+    free_st_matrix(groups);
+    free(groups);
+    free_st_matrix(dists);
+    free(dists);
+    free_st_matrix(agg_dmtx);
+    free(agg_dmtx);
+    free_silhouet(avg_csil);
+    free(avg_csil);
+    free_silhouet(avg_fsil);
+    free(avg_fsil);
+    free_silhouet(avg_ssil);
+    free(avg_ssil);
+    free_silhouet(csil);
+    free(csil);
+    free_silhouet(fsil);
+    free(fsil);
+    free_silhouet(ssil);
+    free(ssil);
 END:
 	for(i = 0; i < dmatrixc; ++i) {
 		for(j = 0; j < objc; ++j) {
