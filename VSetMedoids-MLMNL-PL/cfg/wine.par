@@ -1,0 +1,25 @@
+178
+3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+13
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist01.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist02.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist03.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist04.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist05.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist06.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist07.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist08.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist09.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist10.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist11.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist12.data
+/home/diogo/Documents/Universidade/mestrado/data/datasets/wine/wine-dist13.data
+out-wine.txt
+3
+3
+100
+0.02
+100
+1e-10
+2.0
+0.1
