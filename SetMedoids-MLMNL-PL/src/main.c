@@ -326,6 +326,91 @@ double adequacy_cluster(bool check) {
 			}
             cluster_adeq += pow(memb[i][k], mfuz) * sumweights;
             free_adeq += pow(memb[i][k], mfuz) * sumweights;
+		}
+        if(check) {
+            if(dlt(parc_cluster_adeq[k], cluster_adeq)) {
+                printf("Msg: adequacy for cluster %d is greater "
+                        "than previous (%.15lf).\n", k,
+						cluster_adeq - parc_cluster_adeq[k]);
+            }
+        }
+        parc_cluster_adeq[k] = cluster_adeq;
+	}
+    for(i = 0; i < objc; ++i) {
+        if(constraints[i]) {
+            for(m = 0; m < constraints[i]->ml->size; ++m) {
+                obj = constraints[i]->ml->get[m];
+                for(r = 0; r < clustc; ++r) {
+                    for(s = 0; s < clustc; ++s) {
+                        if(s != r) {
+                            rest_adeq1 +=
+                                        memb[i][r] * memb[obj][s];
+                        }
+                    }
+                }
+            }
+            for(m = 0; m < constraints[i]->mnl->size; ++m) {
+                obj = constraints[i]->mnl->get[m];
+                for(r = 0; r < clustc; ++r) {
+                    rest_adeq2 += memb[i][r] * memb[obj][r];
+                }
+            }
+        }
+    }
+    double rest_adeq = alpha * (rest_adeq1 + rest_adeq2);
+//    printf("constraint adeq: %.20lf\n", alpha * (sum1 + sum2));
+//    printf("adeq: %.20lf\n", adeq);
+    double adeq = free_adeq + rest_adeq;
+    if(check) {
+        if(dlt(prev_free_adeq, free_adeq)) {
+            printf("Msg: unconstrained adequacy is greater than "
+                    "previous (%.15lf).\n",
+                    free_adeq - prev_free_adeq);
+        }
+        if(dlt(prev_rest_adeq, rest_adeq)) {
+            printf("Msg: constrained adequacy is greater than "
+                    "previous (%.15lf).\n",
+                    rest_adeq - prev_rest_adeq);
+        }
+        if(dlt(prev_adeq, adeq)) {
+            printf("Msg: overall adequacy is greater than "
+                    "previous (%.15lf).\n", adeq - prev_adeq);
+        }
+    }
+    prev_rest_adeq = rest_adeq;
+    prev_free_adeq = free_adeq;
+    prev_adeq = adeq;
+    return adeq;
+}
+
+double adequacy_cluster_old(bool check) {
+	size_t e;
+	size_t i;
+	size_t j;
+	size_t k;
+    size_t m;
+    size_t r;
+    size_t s;
+	double sumweights;
+	double sumd;
+	double free_adeq = 0.0; // overall free adeq
+    size_t obj;
+    double rest_adeq1 = 0.0; // ML overall rest adeq
+    double rest_adeq2 = 0.0; // MNL overall rest adeq
+    double cluster_adeq; // overall adeq for a cluster
+    for(k = 0; k < clustc; ++k) {
+        cluster_adeq = 0.0;
+        for(i = 0; i < objc; ++i) {
+			sumweights = 0.0;
+			for(j = 0; j < dmatrixc; ++j) {
+				sumd = 0.0;
+				for(e = 0; e < medoids_card; ++e) {
+					sumd += dmatrix[j][i][medoids[k][e]];
+				}
+				sumweights += weights[k][j] * sumd;
+			}
+            cluster_adeq += pow(memb[i][k], mfuz) * sumweights;
+            free_adeq += pow(memb[i][k], mfuz) * sumweights;
             if(constraints[i]) {
                 for(m = 0; m < constraints[i]->ml->size; ++m) {
                     obj = constraints[i]->ml->get[m];
