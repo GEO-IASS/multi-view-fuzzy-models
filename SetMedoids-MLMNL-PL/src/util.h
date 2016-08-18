@@ -26,4 +26,8 @@ void mtxcpy_d(double **destination, double **source, size_t nrow,
 void mtxcpy_size_t(size_t **destination, size_t **source, size_t nrow,
         size_t ncol);
 
+int max(int *vec, size_t size);
+
+void print_header(char *str, size_t size);
+
 #endif /* _UTIL_H_ */
