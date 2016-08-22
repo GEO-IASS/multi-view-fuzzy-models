@@ -321,28 +321,6 @@ double adequacy_cluster(bool check) {
 			}
             cluster_adeq += pow(memb[i][k], mfuz) * sumweights;
             free_adeq += pow(memb[i][k], mfuz) * sumweights;
-            if(constraints[i]) {
-                for(m = 0; m < constraints[i]->ml->size; ++m) {
-                    obj = constraints[i]->ml->get[m];
-                    for(r = 0; r < clustc; ++r) {
-                        for(s = 0; s < clustc; ++s) {
-                            if(s != r) {
-                                cluster_adeq +=
-                                            memb[i][r] * memb[obj][s];
-                                rest_adeq1 +=
-                                            memb[i][r] * memb[obj][s];
-                            }
-                        }
-                    }
-                }
-                for(m = 0; m < constraints[i]->mnl->size; ++m) {
-                    obj = constraints[i]->mnl->get[m];
-                    for(r = 0; r < clustc; ++r) {
-                        cluster_adeq += memb[i][r] * memb[obj][r];
-                        rest_adeq2 += memb[i][r] * memb[obj][r];
-                    }
-                }
-            }
 		}
         if(check) {
             if(dlt(parc_cluster_adeq[k], cluster_adeq)) {
@@ -353,6 +331,27 @@ double adequacy_cluster(bool check) {
         }
         parc_cluster_adeq[k] = cluster_adeq;
 	}
+    for(i = 0; i < objc; ++i) {
+        if(constraints[i]) {
+            for(m = 0; m < constraints[i]->ml->size; ++m) {
+                obj = constraints[i]->ml->get[m];
+                for(r = 0; r < clustc; ++r) {
+                    for(s = 0; s < clustc; ++s) {
+                        if(s != r) {
+                            rest_adeq1 +=
+                                        memb[i][r] * memb[obj][s];
+                        }
+                    }
+                }
+            }
+            for(m = 0; m < constraints[i]->mnl->size; ++m) {
+                obj = constraints[i]->mnl->get[m];
+                for(r = 0; r < clustc; ++r) {
+                    rest_adeq2 += memb[i][r] * memb[obj][r];
+                }
+            }
+        }
+    }
     double rest_adeq = alpha * (rest_adeq1 + rest_adeq2);
 //    printf("constraint adeq: %.20lf\n", alpha * (sum1 + sum2));
 //    printf("adeq: %.20lf\n", adeq);
