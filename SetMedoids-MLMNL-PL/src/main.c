@@ -642,6 +642,47 @@ void update_weights() {
 	}
 }
 
+double adequacy() {
+    size_t c, e, i, j, k;
+    int obj;
+    double sumd;
+    double sumw;
+    double adeq = 0.0;
+    double adeq_contr = 0.0;
+    for(i = 0; i < objc; ++i) {
+        for(k = 0; k < clustc; ++k) {
+            sumw = 0.0;
+            for(j = 0; j < dmatrixc; ++j) {
+                sumd = 0.0;
+                for(e = 0; e < medoids_card; ++e) {
+                    sumd += dmatrix[j][i][medoids[k][e]];
+                }
+                sumw += weights[k][j] * sumd;
+            }
+            adeq += pow(memb[i][k], mfuz) * sumw;
+        }
+        if(constraints[i]) {
+            for(e = 0; e < constraints[i]->ml->size; ++e) {
+                obj = constraints[i]->ml->get[e];
+                for(k = 0; k < clustc; ++k) {
+                    for(c = 0; c < clustc; ++c) {
+                        if(c != k) {
+                            adeq_contr += memb[i][k] * memb[obj][c];
+                        }
+                    }
+                }
+            }
+            for(e = 0; e < constraints[i]->mnl->size; ++e) {
+                obj = constraints[i]->mnl->get[e];
+                for(k = 0; k < clustc; ++k) {
+                    adeq_contr += memb[i][k] * memb[obj][k];
+                }
+            }
+        }
+    }
+    return adeq + (alpha * (2.0 * adeq_contr));
+}
+
 double run() {
 	size_t i;
 	size_t j;
@@ -659,25 +700,32 @@ double run() {
     //memb_adequacy(false);
 	print_memb(memb);
 	double prev_adeq = 0.0;
-	double adeq = adequacy_obj(false);
+//	double adeq = adequacy_obj(false);
+    double adeq = adequacy();
 	printf("Adequacy: %.20lf\n", adeq);
     double diff = fabs(adeq - prev_adeq);
 	for(i = 1; i <= max_iter && diff > epsilon; ++i) {
         printf("Iteration %d.\n", i);
         prev_adeq = adeq;
-		adequacy_cluster(false);
+//		adequacy_cluster(false);
+        adequacy();
         update_medoids();
-		adeq = adequacy_cluster(true);
+//		adeq = adequacy_cluster(true);
+        adeq = adequacy();
         print_medoids(medoids);
         printf("Adequacy1: %.20lf\n", adeq);
-		adequacy_cluster(false);
+//		adequacy_cluster(false);
+        adequacy();
         update_weights();
-		adeq = adequacy_cluster(true);
+//		adeq = adequacy_cluster(true);
+        adeq = adequacy();
         print_weights(weights);
         printf("Adequacy2: %.20lf\n", adeq);
-		adequacy_obj(false);
+//		adequacy_obj(false);
+        adequacy();
         constrained_update_memb();
-		adeq = adequacy_obj(true);
+//		adeq = adequacy_obj(true);
+        adeq = adequacy();
         print_memb(memb);
         printf("Adequacy: %.20lf\n", adeq);
         if(dgt(adeq, prev_adeq)) {
