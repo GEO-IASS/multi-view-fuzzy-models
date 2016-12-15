@@ -788,7 +788,35 @@ void print_class() {
 	}
 }
 
-void gen_sample(size_t size) {
+void gen_sample(double sample_perc) {
+	sample = malloc(sizeof(int_vec) * classc);
+    constsc = 0;
+	int pos;
+    int max;
+    int swp;
+    size_t sample_size;
+	size_t i;
+	size_t k;
+	for(k = 0; k < classc; ++k) {
+        sample_size = class[k].size * sample_perc;
+        constsc += sample_size;
+		int_vec_init(&sample[k], sample_size);
+        max = class[k].size;
+        int obj[max];
+        for(i = 0; i < max; ++i) {
+            obj[i] = class[k].get[i];
+        }
+		for(i = 0; i < sample_size; ++i) {
+            pos = rand() % max;
+            --max;
+            int_vec_push(&sample[k], obj[pos]);
+            swp = obj[pos];
+            obj[pos] = obj[max];
+            obj[max] = swp;
+		}
+	}
+}
+void gen_sample_old(size_t size) {
 	printf("sample size: %d\n", size);
 	sample = malloc(sizeof(int_vec) * classc);
 	size_t per_class = size / classc;
@@ -1077,7 +1105,8 @@ int main(int argc, char **argv) {
     size_t best_inst;
     double best_inst_adeq;
     double cur_inst_adeq;
-	gen_sample(sample_perc * objc);
+    gen_sample(sample_perc);
+//	gen_sample(sample_perc * objc);
 	print_sample();
 	gen_constraints();
     print_constraints();
