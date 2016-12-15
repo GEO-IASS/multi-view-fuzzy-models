@@ -102,23 +102,23 @@ void print_weights(double **weights) {
 }
 
 void init_medoids() {
-	size_t i;
-	size_t e;
-	size_t k;
-	int obj;
-	bool chosen[objc];
-	for(k = 0; k < clustc; ++k) {
-		for(i = 0; i < objc; ++i) {
-			chosen[i] = false;
-		}
-		for(e = 0; e < medoids_card; ++e) {
-			do {
-				obj = rand() % objc;
-			} while(chosen[obj]);
-			medoids[k][e] = obj;
-			chosen[obj] = true;
-		}
-	}
+    size_t e, i, k;
+    int objs[objc];
+    for(i = 0; i < objc; ++i) {
+        objs[i] = i;
+    }
+    int pos;
+    int max;
+    for(k = 0; k < clustc; ++k) {
+        max = objc;
+        for(e = 0; e < medoids_card; ++e) {
+            pos = rand() % max;
+            --max;
+            medoids[k][e] = objs[pos];
+            objs[pos] = objs[max];
+            objs[max] = medoids[k][e];
+        }
+    }
 }
 
 void print_medoids(size_t **medoids) {
