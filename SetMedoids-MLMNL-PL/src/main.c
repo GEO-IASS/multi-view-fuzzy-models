@@ -788,7 +788,7 @@ void print_class() {
 	}
 }
 
-void gen_sample(double sample_perc) {
+void gen_sample_(double sample_perc) {
 	sample = malloc(sizeof(int_vec) * classc);
     constsc = 0;
 	int pos;
@@ -813,29 +813,6 @@ void gen_sample(double sample_perc) {
             swp = obj[pos];
             obj[pos] = obj[max];
             obj[max] = swp;
-		}
-	}
-}
-void gen_sample_old(size_t size) {
-	printf("sample size: %d\n", size);
-	sample = malloc(sizeof(int_vec) * classc);
-	size_t per_class = size / classc;
-	constsc = per_class * classc;
-	int pos;
-	size_t i;
-	size_t k;
-	for(k = 0; k < classc; ++k) {
-		int_vec_init(&sample[k], per_class);
-		bool chosen[class[k].size];
-        for(i = 0; i < class[k].size; ++i) {
-            chosen[i] = false;
-        }
-		for(i = 0; i < per_class; ++i) {
-			do {
-				pos = rand() % class[k].size;
-			} while(chosen[pos]);
-			chosen[pos] = true;
-			int_vec_push(&sample[k], class[k].get[pos]);
 		}
 	}
 }
@@ -1105,8 +1082,7 @@ int main(int argc, char **argv) {
     size_t best_inst;
     double best_inst_adeq;
     double cur_inst_adeq;
-    gen_sample(sample_perc);
-//	gen_sample(sample_perc * objc);
+    gen_sample_(sample_perc);
 	print_sample();
 	gen_constraints();
     print_constraints();
@@ -1179,6 +1155,9 @@ int main(int argc, char **argv) {
     groups = asgroups(pred, objc, classc);
     print_header("Partitions", HEADER_SIZE);
     print_groups(groups);
+    st_matrix *confmtx = confusion(labels, pred, objc);
+    print_header("Confusion matrix (class x cluster)", HEADER_SIZE);
+    print_st_matrix(confmtx, 0, true);
 
     dists = medoid_dist(best_weights, best_medoids);
     print_header("Best instance indexes", HEADER_SIZE);
@@ -1241,6 +1220,8 @@ int main(int argc, char **argv) {
     free(fsil);
     free_silhouet(ssil);
     free(ssil);
+    free_st_matrix(confmtx);
+    free(confmtx);
 END:
 	for(i = 0; i < dmatrixc; ++i) {
 		for(j = 0; j < objc; ++j) {
