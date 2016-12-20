@@ -35,6 +35,10 @@ int* defuz(st_matrix *fuzmtx) {
     size_t j;
     double maxval;
     double val;
+    int sizes[fuzmtx->ncol];
+    for(j = 0; j < fuzmtx->ncol; ++j) {
+        sizes[j] = 0;
+    }
     int *labels = malloc(sizeof(int) * fuzmtx->nrow);
     for(i = 0; i < fuzmtx->nrow; ++i) {
         maxval = get(fuzmtx, i, 0);
@@ -46,6 +50,19 @@ int* defuz(st_matrix *fuzmtx) {
                 labels[i] = j;
             }
         }
+        sizes[labels[i]]++;
+    }
+    int label_map[fuzmtx->ncol];
+    int cur = 0;
+    for(j = 0; j < fuzmtx->ncol; ++j) {
+        if(sizes[j]) {
+            label_map[j] = cur++;
+        } else {
+            label_map[j] = -1;
+        }
+    }
+    for(i = 0; i < fuzmtx->nrow; ++i) {
+        labels[i] = label_map[labels[i]];
     }
     return labels;
 }

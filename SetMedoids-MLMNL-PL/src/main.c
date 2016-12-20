@@ -998,6 +998,14 @@ int main(int argc, char **argv) {
         printf("Error: mfuz <= 0.\n");
         return 2;
     }
+    int seed;
+    char seedstr[16];
+    fscanf(cfgfile, "%s", seedstr);
+    if(!strcmp(seedstr, "RAND")) {
+        seed = time(NULL);
+    } else {
+        seed = atoi(seedstr);
+    }
     double sample_perc;
     fscanf(cfgfile, "%lf", &sample_perc);
     if(dlt(sample_perc, 0.0)) {
@@ -1008,13 +1016,16 @@ int main(int argc, char **argv) {
     freopen(out_file_name, "w", stdout);
 	mfuzval = 1.0 / (mfuz - 1.0);
     printf("######Config summary:######\n");
+    printf("Number of objects: %d\n", objc);
     printf("Number of clusters: %d.\n", clustc);
     printf("Medoids cardinality: %d.\n", medoids_card);
     printf("Number of iterations: %d.\n", max_iter);
+    printf("Number of instances: %d\n", insts);
     printf("Epsilon: %.15lf.\n", epsilon);
     printf("Theta: %.15lf.\n", theta);
     printf("Parameter m: %.15lf.\n", mfuz);
     printf("Number of instances: %d.\n", insts);
+    printf("Seed: %d\n", seed);
     printf("Sample percentage: %lf.\n", sample_perc);
     printf("###########################\n");
 	size_t k;
@@ -1078,7 +1089,7 @@ int main(int argc, char **argv) {
     st_matrix *dists;
     st_matrix *agg_dmtx;
     st_matrix *memb_mtx;
-	srand(time(NULL));
+	srand(seed);
     size_t best_inst;
     double best_inst_adeq;
     double cur_inst_adeq;
@@ -1169,6 +1180,9 @@ int main(int argc, char **argv) {
             partent(best_memb_mtx), log(clustc));
     printf("Average intra cluster distance: %.10lf\n",
             avg_intra_dist(best_memb_mtx, dists, mfuz));
+    printf("CR: %.10lf\n", corand(labels, pred, objc));
+    printf("F-measure: %.10lf\n", fmeasure(confmtx, true));
+    printf("NMI: %.10lf\n", nmi(confmtx));
 
     if(MEAN_IDX) {
         print_header("Average indexes", HEADER_SIZE);
