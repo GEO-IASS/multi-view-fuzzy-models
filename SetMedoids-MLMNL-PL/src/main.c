@@ -53,6 +53,7 @@ void constraint_free(constraint *c) {
 }
 
 bool debug;
+bool verbose;
 size_t max_iter;
 int objc;
 size_t clustc;
@@ -696,7 +697,7 @@ double run() {
 			weights[k][j] = 1.0;
 		}
 	}
-	print_weights(weights);
+	if(verbose) print_weights(weights);
 	update_memb();
     //memb_adequacy(false);
 	print_memb(memb);
@@ -713,21 +714,25 @@ double run() {
         update_medoids();
 //		adeq = adequacy_cluster(true);
         adeq = adequacy();
-        print_medoids(medoids);
-        printf("Adequacy1: %.20lf\n", adeq);
+        if(verbose) {
+            print_medoids(medoids);
+            printf("Adequacy1: %.20lf\n", adeq);
+        }
 //		adequacy_cluster(false);
         adequacy();
         update_weights();
 //		adeq = adequacy_cluster(true);
         adeq = adequacy();
-        print_weights(weights);
-        printf("Adequacy2: %.20lf\n", adeq);
+        if(verbose) {
+            print_weights(weights);
+            printf("Adequacy2: %.20lf\n", adeq);
+        }
 //		adequacy_obj(false);
         adequacy();
         constrained_update_memb();
 //		adeq = adequacy_obj(true);
         adeq = adequacy();
-        print_memb(memb);
+        if(verbose) print_memb(memb);
         printf("Adequacy: %.20lf\n", adeq);
         if(dgt(adeq, prev_adeq)) {
             printf("Warn: current adequacy is greater than "
@@ -736,7 +741,7 @@ double run() {
         }
         diff = fabs(adeq - prev_adeq);
 	}
-    printf("Adequacy difference threshold reached (%.20lf).\n",
+    printf("Process ended. Adequacy difference threshold: %.20lf\n",
             diff);
     return adeq;
 }
@@ -932,6 +937,7 @@ st_matrix* agg_dmatrix(double **weights) {
 
 int main(int argc, char **argv) {
 	debug = true;
+    verbose = false;
 	int insts;
     FILE *cfgfile = fopen(argv[1], "r");
     if(!cfgfile) {
@@ -1152,7 +1158,7 @@ int main(int argc, char **argv) {
             best_inst = i;
         }
 	}
-    printf("Best adequacy %.15lf on instance %d.\n",
+    printf("\nBest adequacy %.15lf on instance %d.\n",
             best_inst_adeq, best_inst);
     printf("\n");
     print_medoids(best_medoids);
