@@ -19,9 +19,9 @@ void remap(int *labels, size_t size, int *factors) {
     }
 }
 
-void norm_labels(int *labels, size_t size) {
-    size_t classc = 0;
-}
+//void norm_labels(int *labels, size_t size) {
+//    size_t classc = 0;
+//}
 
 // Defuzzifies fuzzy matrix 'fuzmtx' by using the first
 // maxima method.
